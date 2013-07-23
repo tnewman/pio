@@ -1,0 +1,42 @@
+GPIO Table
+Revision 2 Raspberry Pi
+Derived from: BCM2835-ARM-Peripherals & Raspberry-Pi-R2.0-Schematics-Issue2.2_027
+Maps each usable GPIO to its physical pin, alternate function, and address.
+
+P1 Pin    GPIO Number   Alt0
+1         N/A           N/A
+2         N/A           N/A
+3         GPIO2 (High)  SDA1
+4         N/A           N/A
+5         GPIO3 (High)  SCL1
+6         N/A           N/A
+7         GPIO4         GPCLK0
+8         GPIO14        TXD0
+9         N/A           N/A
+10        GPIO15        RXD0
+11        GPIO17        I/O
+12        GPIO18        PCM_CLK
+13        GPIO27        I/O
+14        N/A           N/A
+15        GPIO22        I/O
+16        GPIO23        I/O
+17        N/A           N/A
+18        GPIO24        N/A
+19        GPIO10        SPI0_MOSI
+20        N/A           N/A
+21        GPIO9         SPI0_MISO
+22        GPIO25        I/O
+23        GPIO11        SPI0_SCLK
+24        GPIO8         SPI0_CE0_N
+25        N/A           N/A
+26        GPIO7         SPI0_CE1_N
+
+Notes:
+* It is recommended that GPIO pins without alternate functions are used first.
+* If a GPIO pin with an alternate function is used for I/O, the alternate function 
+  will not be available.
+* Other alternate functions may be available (see BCM2835-Arm-Peripherals). This 
+  table lists the common function.
+* N/A refers to supply rail or ground.
+* Pin pulls low, unless stated otherwise.
+* See BCM2835-Arm-Peripherals for the registers for each GPIO pin.
