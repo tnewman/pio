@@ -1,7 +1,6 @@
 GPIO Table
-Revision 2 Raspberry Pi
-Derived from: BCM2835-ARM-Peripherals & Raspberry-Pi-R2.0-Schematics-Issue2.2_027
-Maps each usable GPIO to its physical pin, alternate function, and address.
+Derived from: BCM2835-ARM-Peripherals, Raspberry-Pi-Schematics-R1.0, & 
+Raspberry-Pi-R2.0-Schematics-Issue2.2_027
 
 P1 Pin    GPIO V2       Alt0 V2     GPIO V1       Alt0 V1
 1         N/A           N/A         N/A           N/A
@@ -37,6 +36,7 @@ Notes:
   will not be available.
 * Other alternate functions may be available (see BCM2835-Arm-Peripherals). This 
   table lists the common function.
+* I/O means that ALT0 is reserved, and the pin is for input/output by default.
 * N/A refers to supply rail or ground.
 * Pin pulls low, unless stated otherwise.
 * See BCM2835-Arm-Peripherals for the registers for each GPIO pin.
