@@ -1,13 +1,13 @@
 /*
- *  File:			    gpio_test.cpp
+ *	File:		gpio_test.cpp
  *	Description:	Tests GPIO memory access using Broadcom GPIO Pin 17 on revision 2
- * 					      of the Raspberry Pi
- *	Programmer:		Thomas Newman
- *	Date:			    2013/07/30
+ *			of the Raspberry Pi
+ *	Programmer:	Thomas Newman
+ *	Date:		2013/07/30
  *
- *	Note:		      This program must run as root to successfully map the file.
- *					      This program is just to test the basic functionality. All it does
- *					      is turn one LED on.
+ *	Note:		This program must run as root to successfully map the file.
+ *			This program is just to test the basic functionality. All it does
+ *			is turn one LED on.
  *
  *	The MIT License (MIT)
  *
