@@ -1,8 +1,8 @@
 /*
- * File:		gpio.h
- * Description:	Declaration of GPIO functions.
- * Programmer:	Aug 1, 2013
- * Date:		tnewman
+ * File:        gpio.h
+ * Description: Declaration of GPIO functions.
+ * Programmer:  Aug 1, 2013
+ * Date:        tnewman
  */
 
 #ifndef GPIO_H_

@@ -1,8 +1,8 @@
 /*
- * File:		register.h
- * Description:	Definition of register addresses and macros to perform simple register calculations.
- * Programmer:	Aug 1, 2013
- * Date:		tnewman
+ * File:        register.h
+ * Description: Definition of register addresses and macros to perform simple register calculations.
+ * Programmer:  Aug 1, 2013
+ * Date:        tnewman
  */
 
 #ifndef REGISTER_H_

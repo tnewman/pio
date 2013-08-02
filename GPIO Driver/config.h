@@ -1,8 +1,8 @@
 /*
- * File:		config.h
- * Description:	Definitions of constants used to customize the build process.
- * Programmer:	Aug 1, 2013
- * Date:		tnewman
+ * File:        config.h
+ * Description: Definitions of constants used to customize the build process.
+ * Programmer:  Aug 1, 2013
+ * Date:        tnewman
  */
 
 #ifndef CONFIG_H_
