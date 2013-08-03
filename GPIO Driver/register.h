@@ -23,13 +23,29 @@
 #define GPFSEL4 0x7E200010
 #define GPFSEL5 0x7E200014
 
+// GPIO Bits Per Pin in Function Select Registers
+#define FUNCTION_PIN_COUNT 0x03
+
 // GPIO Set Registers
 #define GPSET0 0x7E20001C
 #define GPSET1 0x7E200020
 
+// GPIO Bits Per Pin in Set Registers
+#define SET_PIN_COUNT 0x01
+
 // GPIO Clear Registers
 #define GPCLR0 0x7E200028
 #define GPCLR1 0x7E20002C
+
+// GPIO Bits Per Pin in Clear Registers
+#define CLEAR_PIN_COUNT 0x01
+
+// GPIO Level Registers
+#define GPLEV0 0x7E200034
+#define GPLEV1 0x7E200038
+
+// GPIO Bits Per Pin in Level Registers
+#define LEVEL_PIN_COUNT 0x01
 
 // Calculate Offset
 #define CALCULATE_OFFSET(register_address) (((register_address) - GPIO_MEMORY_START) / 4)
