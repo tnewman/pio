@@ -58,7 +58,7 @@ static StatusCode check_pin(int pin_number, PinNumType pin_type);
  */
 StatusCode map_gpio_memory()
 {
-	return SUCCESS;
+    return SUCCESS;
 }
 
 /*
@@ -69,7 +69,7 @@ StatusCode map_gpio_memory()
  */
 StatusCode set_pin(int pin_number, PinNumType pin_type)
 {
-	return SUCCESS;
+    return SUCCESS;
 }
 
 /*
@@ -80,7 +80,7 @@ StatusCode set_pin(int pin_number, PinNumType pin_type)
  */
 StatusCode clear_pin(int pin_number, PinNumType pin_type)
 {
-	return SUCCESS;
+    return SUCCESS;
 }
 
 /*
@@ -91,7 +91,7 @@ StatusCode clear_pin(int pin_number, PinNumType pin_type)
  */
 StatusCode get_pin(int pin_number, PinNumType pin_type)
 {
-	return SUCCESS;
+    return SUCCESS;
 }
 
 /*
@@ -102,141 +102,141 @@ StatusCode get_pin(int pin_number, PinNumType pin_type)
  */
 StatusCode unmap_gpio_memory()
 {
-	return SUCCESS;
+    return SUCCESS;
 }
 
 static StatusCode check_root()
 {
-	if(geteuid() == 0 || getuid() == 0)
-	{
-		return SUCCESS;
-	}
-	else
-	{
-		return NOT_ROOT;
-	}
+    if(geteuid() == 0 || getuid() == 0)
+    {
+        return SUCCESS;
+    }
+    else
+    {
+        return NOT_ROOT;
+    }
 }
 
 static StatusCode check_system()
 {
-	FILE cpu_info_file;
-	FILE line_stream[LINE_MAX];
-	char line_buffer[LINE_MAX];
-	char chipset[LINE_MAX];
-	unsigned int revision = 0;
+    FILE cpu_info_file;
+    FILE line_stream[LINE_MAX];
+    char line_buffer[LINE_MAX];
+    char chipset[LINE_MAX];
+    unsigned int revision = 0;
 
-	cpu_info_file = fopen(CPU_INFO_FILE, O_RDONLY);
+    cpu_info_file = fopen(CPU_INFO_FILE, O_RDONLY);
 
-	// Failure if the CPU information file cannot be opened
-	if(cpu_info_file == NULL)
-	{
-		return NO_CPU_INFO;
-	}
+    // Failure if the CPU information file cannot be opened
+    if(cpu_info_file == NULL)
+    {
+        return NO_CPU_INFO;
+    }
 
-	// Iterate through each line of the file
-	while(fread(line_stream, LINE_MAX, 1, cpu_info_file) != -1)
-	{
-		// Capture the chipset if it is on this line
-		fscanf(line_stream, "Hardware	: %s", chipset);
+    // Iterate through each line of the file
+    while(fread(line_stream, LINE_MAX, 1, cpu_info_file) != -1)
+    {
+        // Capture the chipset if it is on this line
+        fscanf(line_stream, "Hardware\t: %s", chipset);
 
-		// Capture the hardware revision if it is on this line
-		fscanf(line_stream, "Revision	: %x", &revision);
-	}
+        // Capture the hardware revision if it is on this line
+        fscanf(line_stream, "Revision\t: %x", &revision);
+    }
 
-	fclose(cpu_info_file);
-	fclose(line_stream);
+    fclose(cpu_info_file);
+    fclose(line_stream);
 
-	// Check if the chipset is a Raspberry Pi Chipset
-	if(strcmp(CPU_FAMILY, chipset) != 0)
-	{
-		return INVALID_CHIPSET;
-	}
+    // Check if the chipset is a Raspberry Pi Chipset
+    if(strcmp(CPU_FAMILY, chipset) != 0)
+    {
+        return INVALID_CHIPSET;
+    }
 
-	// Check for the hardware revision
-	if(revision >= REV_1_START && revision < REV_2_START)
-	{
-		board_revision = revision;
-	}
-	else if(revision >= REV_2_START)
-	{
-		board_revision = revision;
-	}
-	else
-	{
-		return INVALID_REVISION;
-	}
+    // Check for the hardware revision
+    if(revision >= REV_1_START && revision < REV_2_START)
+    {
+        board_revision = revision;
+    }
+    else if(revision >= REV_2_START)
+    {
+        board_revision = revision;
+    }
+    else
+    {
+        return INVALID_REVISION;
+    }
 
-	return SUCCESS;
+    return SUCCESS;
 }
 
 static StatusCode check_pin(int pin_number, PinNumType pin_type)
 {
-	int revision_id;
-	int i;
+    int revision_id;
+    int i;
 
-	// Check for the hardware revision
-	if(board_revision >= REV_1_START && board_revision < REV_2_START)
-	{
-		revision_id = 1;
-	}
-	else if(board_revision >= REV_2_START)
-	{
-		revision_id = 2;
-	}
-	else
-	{
-		return INVALID_REVISION;
-	}
+    // Check for the hardware revision
+    if(board_revision >= REV_1_START && board_revision < REV_2_START)
+    {
+        revision_id = 1;
+    }
+    else if(board_revision >= REV_2_START)
+    {
+        revision_id = 2;
+    }
+    else
+    {
+        return INVALID_REVISION;
+    }
 
-	// Complexity Note: Yes, this uses O(N) complexity; however doing so avoided
-	// The need to use more complex data structures for pins (since the pins are
-	// not necessarily in numerical order for Broadcom). The size of the data
-	// structure will also be limited by the size of the connector on the board,
-	// so the O(N) complexity is acceptable, given the small size of N that will
-	// not increase by very much.
+    // Complexity Note: Yes, this uses O(N) complexity; however doing so avoided
+    // The need to use more complex data structures for pins (since the pins are
+    // not necessarily in numerical order for Broadcom). The size of the data
+    // structure will also be limited by the size of the connector on the board,
+    // so the O(N) complexity is acceptable, given the small size of N that will
+    // not increase by very much.
 
-	// Broadcom Pin Numbering
-	if(pin_type == BROADCOM)
-	{
-		if(revision_id == 1)
-		{
-			// Search Revision 1 Broadcom
-			for(i = 0; i < sizeof(REV_1_PINS) / sizeof(int); i++)
-			{
-				if(REV_1_PINS[i] == pin_number)
-				{
-					return SUCCESS;
-				}
-			}
-		}
-		// Search Revision 2 Broadcom
-		else if(revision_id == 2)
-		{
-			for(i = 0; i < sizeof(REV_2_PINS) / sizeof(int); i++)
-			{
-				if(REV_2_PINS[i] == pin_number)
-				{
-					return SUCCESS;
-				}
-			}
-		}
+    // Broadcom Pin Numbering
+    if(pin_type == BROADCOM)
+    {
+        if(revision_id == 1)
+        {
+            // Search Revision 1 Broadcom
+            for(i = 0; i < sizeof(REV_1_PINS) / sizeof(int); i++)
+            {
+                if(REV_1_PINS[i] == pin_number)
+                {
+                    return SUCCESS;
+                }
+            }
+        }
+        // Search Revision 2 Broadcom
+        else if(revision_id == 2)
+        {
+            for(i = 0; i < sizeof(REV_2_PINS) / sizeof(int); i++)
+            {
+                if(REV_2_PINS[i] == pin_number)
+                {
+                    return SUCCESS;
+                }
+            }
+        }
 
-	}
-	// Physical Pin Numbering
-	else if(pin_type == P1CONNECTOR)
-	{
-		// Search Physical
-		for(i = 0; i < sizeof(PHYSICAL_PINS) / sizeof(int); i++)
-		{
-			if(PHYSICAL_PINS[i] == pin_number)
-			{
-				return SUCCESS;
-			}
-		}
+    }
+    // Physical Pin Numbering
+    else if(pin_type == P1CONNECTOR)
+    {
+        // Search Physical
+        for(i = 0; i < sizeof(PHYSICAL_PINS) / sizeof(int); i++)
+        {
+            if(PHYSICAL_PINS[i] == pin_number)
+            {
+                return SUCCESS;
+            }
+        }
 
-	}
+    }
 
-	return INVALID_PIN_NUMBER;
+    return INVALID_PIN_NUMBER;
 }
 
 void main()
