@@ -21,7 +21,7 @@
  */
 
 static volatile void* gpio_memory = 0x00;
-static unsigned int board_revision;
+static unsigned int board_revision = 0x00;
 
 /*
  * Name:        check_root
@@ -40,24 +40,27 @@ static StatusCode check_root();
 static StatusCode check_system();
 
 /*
- * Name:        check_pin
- * Description: Verifies that the pin number supplied is a valid pin number for the given pin type.
- * Inputs:      pin number to check, pin type to check against
- * Returns:     SUCCESS, INVALID_REVISION, INVALID_TYPE, or INVALID_PIN_NUMBER
+ * Name:        set_function_register
+ * Description: Sets the function register for a given pin to the desired value.
+ * Inputs:      broadcom pin number to set, function code
+ * Returns:     SUCCESS, INVALID_PIN
  */
-static StatusCode check_pin(int pin_number, PinNumType pin_type);
+static StatusCode set_function_register(int broadcom_pin, int function_code);
+
+/*
+ * Name:        get_broadcom_pin
+ * Description: Returns the broadcom pin number if the revision and pin are correct. Converts a
+ *              physical pin number to the Broadcom pin number for the given Raspberry Pi
+ *              revision. This function depends on the board revision global being populated.
+ * Inputs:      pin number to convert, pin type, and broadcom pin (returned by reference)
+ * Returns:     INVALID_TYPE, INVALID_REVISION, INVALID_PIN_TYPE, INVALID_PIN_NUMBER
+ */
+static StatusCode get_broadcom_pin(int pin_number, PinNumType pin_type, int* broadcom_pin);
 
 /*
  * Implementation Section
  */
 
-/*
- * Name:        map_gpio_memory
- * Description: Maps the GPIO memory region. The memory will not be mapped again if it has already been
- *              allocated.
- * Inputs:      None
- * Returns:     SUCCESS or CANNOT_MAP_MEMORY
- */
 StatusCode map_gpio_memory()
 {
     StatusCode system_result;
@@ -100,49 +103,255 @@ StatusCode map_gpio_memory()
     return SUCCESS;
 }
 
-/*
- * Name:        set_pin
- * Description: Sets the specified GPIO pin.
- * Inputs:      pin number and pin numbering type
- * Returns:     SUCCESS, MEMORY_NOT_MAPPED, INVALID_TYPE, or INVALID_PIN_NUMBER
- */
 StatusCode set_pin(int pin_number, PinNumType pin_type)
 {
-    // TODO: Combine functionality
+    StatusCode status;
+    int broadcom_pin;
+    int set_register;
+    int bit_offset;
+
+    // Verify that memory is mapped
+    if(gpio_memory ==0x00)
+    {
+        return MEMORY_NOT_MAPPED;
+    }
+
+    status = get_broadcom_pin(pin_number, pin_type, &broadcom_pin);
+
+    if(status != SUCCESS)
+    {
+        return status;
+    }
+
+    status = set_function_register(broadcom_pin, GPIO_OUTPUT);
+
+    if(status != SUCCESS)
+    {
+        return status;
+    }
+
+    // Set the given pin
+    switch(broadcom_pin / (REGISTER_SIZE / GPSET_BITS_PER_PIN))
+    {
+    case 0:
+        set_register = GPSET0;
+        break;
+    case 1:
+        set_register = GPSET1;
+        break;
+    default:
+        return INVALID_PIN_NUMBER;
+        break;
+    }
+
+    bit_offset = (broadcom_pin % (REGISTER_SIZE / GPSET_BITS_PER_PIN)) * GPSET_BITS_PER_PIN;
+
+    *((volatile int*) gpio_memory + CALCULATE_OFFSET(set_register)) = GPSET_BITS << bit_offset;
+
+    return SUCCESS;
 }
 
-/*
- * Name:        clear_pin
- * Description: Clears the specified GPIO pin.
- * Inputs:      pin number and pin numbering type
- * Returns:     SUCCESS, MEMORY_NOT_MAPPED, INVALID_TYPE, or INVALID_PIN_NUMBER
- */
 StatusCode clear_pin(int pin_number, PinNumType pin_type)
 {
+    StatusCode status;
+    int broadcom_pin;
+    int clear_register;
+    int bit_offset;
+
+    // Verify that memory is mapped
+    if(gpio_memory ==0x00)
+    {
+        return MEMORY_NOT_MAPPED;
+    }
+
+    status = get_broadcom_pin(pin_number, pin_type, &broadcom_pin);
+
+    if(status != SUCCESS)
+    {
+        return status;
+    }
+
+    status = set_function_register(broadcom_pin, GPIO_OUTPUT);
+
+    if(status != SUCCESS)
+    {
+        return status;
+    }
+
+    // Clear the given pin
+    switch(broadcom_pin / (REGISTER_SIZE / GPCLR_BITS_PER_PIN))
+    {
+    case 0:
+        clear_register = GPCLR0;
+        break;
+    case 1:
+        clear_register = GPCLR1;
+        break;
+    default:
+        return INVALID_PIN_NUMBER;
+        break;
+    }
+
+    bit_offset = (broadcom_pin % (REGISTER_SIZE / GPCLR_BITS_PER_PIN)) * GPCLR_BITS_PER_PIN;
+
+    *((volatile int*) gpio_memory + CALCULATE_OFFSET(clear_register)) = GPCLR_BITS << bit_offset;
+
+    return SUCCESS;
 }
 
-/*
- * Name:        get_pin
- * Description: Gets the value of the specified GPIO pin.
- * Inputs:      pin number, pin numbering type, and pin_valid (by reference - only valid if SUCCESS returned)
- * Returns:     SUCCESS, MEMORY_NOT_MAPPED, INVALID_TYPE, or INVALID_PIN_NUMBER
- */
-StatusCode get_pin(int pin_number, PinNumType pin_type)
+StatusCode get_pin(int pin_number, PinNumType pin_type, int* pin_status)
 {
+    StatusCode status;
+    int broadcom_pin;
+    int status_register;
+    int bit_offset;
+
+    // Verify that memory is mapped
+    if(gpio_memory ==0x00)
+    {
+        return MEMORY_NOT_MAPPED;
+    }
+
+    status = get_broadcom_pin(pin_number, pin_type, &broadcom_pin);
+
+    if(status != SUCCESS)
+    {
+        return status;
+    }
+
+    status = set_function_register(broadcom_pin, GPIO_OUTPUT);
+
+    if(status != SUCCESS)
+    {
+        return status;
+    }
+
+    // Get the given pin
+    switch(broadcom_pin / (REGISTER_SIZE / GPCLR_BITS_PER_PIN))
+    {
+    case 0:
+        status_register = GPLEV0;
+        break;
+    case 1:
+        status_register = GPLEV1;
+        break;
+    default:
+        return INVALID_PIN_NUMBER;
+        break;
+    }
+
+    bit_offset = (broadcom_pin % (REGISTER_SIZE / GPLEV_BITS_PER_PIN)) * GPLEV_BITS_PER_PIN;
+
+    *pin_status = *((volatile int*) gpio_memory + CALCULATE_OFFSET(status_register)) >> bit_offset;
+
+    return SUCCESS;
 }
 
-/*
- * Name:        unmap_gpio_memory
- * Description: Unmaps the GPIO memory region. Does nothing if no memory is mapped.
- * Inputs:      None
- * Returns:     SUCCESS
- */
+static StatusCode set_function_register(int broadcom_pin, int function_code)
+{
+    int function_register;
+    int bit_offset;
+
+    if(function_code / 8)
+    {
+        return INVALID_FUNCTION_CODE;
+    }
+
+    bit_offset = broadcom_pin % (REGISTER_SIZE / GPFSEL_BITS_PER_PIN);
+
+    // Set the correct function select register
+    switch(broadcom_pin / (REGISTER_SIZE / GPFSEL_BITS_PER_PIN))
+    {
+    case 0:
+        function_register = GPFSEL0;
+        break;
+    case 1:
+        function_register = GPFSEL1;
+        break;
+    case 2:
+        function_register = GPFSEL2;
+        break;
+    case 3:
+        function_register = GPFSEL3;
+        break;
+    case 4:
+        function_register = GPFSEL4;
+        break;
+    case 5:
+        function_register = GPFSEL5;
+        break;
+    default:
+        return INVALID_PIN_NUMBER;
+    }
+
+    bit_offset = (broadcom_pin % (REGISTER_SIZE / GPFSEL_BITS_PER_PIN)) * GPFSEL_BITS_PER_PIN;
+
+    *((volatile int*) gpio_memory + CALCULATE_OFFSET(function_register)) |= function_code << bit_offset;
+
+    return SUCCESS;
+}
+
+static StatusCode get_broadcom_pin(int pin_number, PinNumType pin_type, int* broadcom_pin)
+{
+    const int* broadcom_pins;
+    int i;
+
+    if(pin_type != BROADCOM && pin_type != P1CONNECTOR)
+    {
+        return INVALID_TYPE;
+    }
+
+    if(board_revision == 1)
+    {
+        broadcom_pins = REV_1_PINS;
+    }
+    else if(board_revision == 2)
+    {
+        broadcom_pins = REV_2_PINS;
+    }
+    else
+    {
+        return INVALID_REVISION;
+    }
+
+    // Get the Broadcom pin for the P1Connector
+    if(pin_type == P1CONNECTOR)
+    {
+        for(i = 0; i < sizeof(broadcom_pins) / sizeof(int) && i < sizeof(PHYSICAL_PINS) / sizeof(int); i++)
+        {
+            /*
+             * A match has been found, so return the corresponding Broadcom Pin that is stored
+             * at the same index
+             */
+            if(pin_number == PHYSICAL_PINS[i])
+            {
+                *broadcom_pin = broadcom_pins[i];
+                return SUCCESS;
+            }
+        }
+    }
+    // Verify that the Broadcom pin exists
+    else if(pin_type == BROADCOM)
+    {
+        for(i = 0; i < sizeof(broadcom_pins) / sizeof(int); i++)
+        {
+            if(pin_number == broadcom_pins[i])
+            {
+                *broadcom_pin = broadcom_pins[i];
+                return SUCCESS;
+            }
+        }
+    }
+
+    return INVALID_PIN_NUMBER;
+}
+
 StatusCode unmap_gpio_memory()
 {
     // Memory must be mapped to be unmapped
     if(gpio_memory != 0x00)
     {
-        munmap(gpio_memory, GPIO_MEMORY_SIZE);
+        munmap((void*) gpio_memory, GPIO_MEMORY_SIZE);
         gpio_memory = 0x00;
     }
 
@@ -198,11 +407,11 @@ static StatusCode check_system()
     // Check for the hardware revision
     if(revision >= REV_1_START && revision < REV_2_START)
     {
-        board_revision = revision;
+        board_revision = 1;
     }
     else if(revision >= REV_2_START)
     {
-        board_revision = revision;
+        board_revision = 2;
     }
     else
     {
@@ -212,77 +421,11 @@ static StatusCode check_system()
     return SUCCESS;
 }
 
-static StatusCode check_pin(int pin_number, PinNumType pin_type)
-{
-    int revision_id;
-    int i;
-
-    // Check for the hardware revision
-    if(board_revision >= REV_1_START && board_revision < REV_2_START)
-    {
-        revision_id = 1;
-    }
-    else if(board_revision >= REV_2_START)
-    {
-        revision_id = 2;
-    }
-    else
-    {
-        return INVALID_REVISION;
-    }
-
-    // Complexity Note: Yes, this uses O(N) complexity; however doing so avoided
-    // The need to use more complex data structures for pins (since the pins are
-    // not necessarily in numerical order for Broadcom). The size of the data
-    // structure will also be limited by the size of the connector on the board,
-    // so the O(N) complexity is acceptable, given the small size of N that will
-    // not increase by very much.
-
-    // Broadcom Pin Numbering
-    if(pin_type == BROADCOM)
-    {
-        if(revision_id == 1)
-        {
-            // Search Revision 1 Broadcom
-            for(i = 0; i < sizeof(REV_1_PINS) / sizeof(int); i++)
-            {
-                if(REV_1_PINS[i] == pin_number)
-                {
-                    return SUCCESS;
-                }
-            }
-        }
-        // Search Revision 2 Broadcom
-        else if(revision_id == 2)
-        {
-            for(i = 0; i < sizeof(REV_2_PINS) / sizeof(int); i++)
-            {
-                if(REV_2_PINS[i] == pin_number)
-                {
-                    return SUCCESS;
-                }
-            }
-        }
-
-    }
-    // Physical Pin Numbering
-    else if(pin_type == P1CONNECTOR)
-    {
-        // Search Physical
-        for(i = 0; i < sizeof(PHYSICAL_PINS) / sizeof(int); i++)
-        {
-            if(PHYSICAL_PINS[i] == pin_number)
-            {
-                return SUCCESS;
-            }
-        }
-
-    }
-
-    return INVALID_PIN_NUMBER;
-}
-
 int main()
 {
+    map_gpio_memory();
+    set_pin(17, BROADCOM);
+    unmap_gpio_memory();
+
     return 0;
 }

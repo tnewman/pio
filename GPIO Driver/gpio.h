@@ -41,6 +41,7 @@ typedef enum {
 	MEMORY_NOT_MAPPED, // The GPIO memory region has not been mapped yet
 	INVALID_TYPE, // The pin type is not any of the allowed pin types.
 	INVALID_PIN_NUMBER, // The pin number is not a pin number supported by the current pin type.
+	INVALID_FUNCTION_CODE, // The supplied function code exceeds the allowable number of bits
 } StatusCode;
 
 /*
@@ -56,7 +57,7 @@ StatusCode map_gpio_memory();
  * Name:        set_pin
  * Description: Sets the specified GPIO pin.
  * Inputs:      pin number and pin numbering type
- * Returns:     SUCCESS, MEMORY_NOT_MAPPED, INVALID_TYPE, or INVALID_PIN_NUMBER
+ * Returns:     SUCCESS, MEMORY_NOT_MAPPED, INVALID_CHIPSET, INVALID_REVISION, INVALID_TYPE, or INVALID_PIN_NUMBER
  */
 StatusCode set_pin(int pin_number, PinNumType pin_type);
 
@@ -64,7 +65,7 @@ StatusCode set_pin(int pin_number, PinNumType pin_type);
  * Name:        clear_pin
  * Description: Clears the specified GPIO pin.
  * Inputs:      pin number and pin numbering type
- * Returns:     SUCCESS, MEMORY_NOT_MAPPED, INVALID_TYPE, or INVALID_PIN_NUMBER
+ * Returns:     SUCCESS, MEMORY_NOT_MAPPED, INVALID_CHIPSET, INVALID_REVISION, INVALID_TYPE, or INVALID_PIN_NUMBER
  */
 StatusCode clear_pin(int pin_number, PinNumType pin_type);
 
@@ -72,9 +73,9 @@ StatusCode clear_pin(int pin_number, PinNumType pin_type);
  * Name:        get_pin
  * Description: Gets the value of the specified GPIO pin.
  * Inputs:      pin number, pin numbering type, and pin_valid (by reference - only valid if SUCCESS returned)
- * Returns:     SUCCESS, MEMORY_NOT_MAPPED, INVALID_TYPE, or INVALID_PIN_NUMBER
+ * Returns:     SUCCESS, MEMORY_NOT_MAPPED, INVALID_CHIPSET, INVALID_REVISION, INVALID_TYPE, or INVALID_PIN_NUMBER
  */
-StatusCode get_pin(int pin_number, PinNumType pin_type);
+StatusCode get_pin(int pin_number, PinNumType pin_type, int* pin_status);
 
 /*
  * Name:        unmap_gpio_memory
