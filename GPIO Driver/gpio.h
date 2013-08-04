@@ -91,6 +91,9 @@ StatusCode unmap_gpio_memory();
  * hardware revisions.
  */
 
+// Location of the file storing physical memory
+#define MEMORY_FILE "/dev/mem"
+
 // Location of the file storing Linux CPU information
 #define CPU_INFO_FILE "/proc/cpuinfo"
 

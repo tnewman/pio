@@ -9,10 +9,12 @@
 #include "register.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <sys/mman.h>
 
 /*
  * Declaration Section
@@ -58,6 +60,43 @@ static StatusCode check_pin(int pin_number, PinNumType pin_type);
  */
 StatusCode map_gpio_memory()
 {
+    StatusCode system_result;
+    int memory_file;
+
+    // Make sure the user is root before continuing
+    if(check_root() == NOT_ROOT)
+    {
+        return NOT_ROOT;
+    }
+
+    // Make sure the hardware is a Raspberry Pi with a known hardware revision
+    system_result = check_system();
+
+    if(system_result != SUCCESS)
+    {
+        return system_result;
+    }
+
+    // Map GPIO memory
+    memory_file = open(MEMORY_FILE, O_RDONLY);
+
+    // Make sure the file opened correctly
+    if(memory_file < 0)
+    {
+        return CANNOT_MAP_MEMORY;
+    }
+
+    gpio_memory = mmap(0x00, GPIO_MEMORY_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, memory_file, GPIO_MEMORY_START);
+
+    close(memory_file);
+
+    // Failure if the memory location is 0x00
+    if(gpio_memory == MAP_FAILED)
+    {
+        return CANNOT_MAP_MEMORY;
+    }
+
+    // At this point, the memory was mapped successfully
     return SUCCESS;
 }
 
@@ -69,7 +108,7 @@ StatusCode map_gpio_memory()
  */
 StatusCode set_pin(int pin_number, PinNumType pin_type)
 {
-    return SUCCESS;
+    // TODO: Combine functionality
 }
 
 /*
@@ -80,7 +119,6 @@ StatusCode set_pin(int pin_number, PinNumType pin_type)
  */
 StatusCode clear_pin(int pin_number, PinNumType pin_type)
 {
-    return SUCCESS;
 }
 
 /*
@@ -91,7 +129,6 @@ StatusCode clear_pin(int pin_number, PinNumType pin_type)
  */
 StatusCode get_pin(int pin_number, PinNumType pin_type)
 {
-    return SUCCESS;
 }
 
 /*
@@ -102,6 +139,13 @@ StatusCode get_pin(int pin_number, PinNumType pin_type)
  */
 StatusCode unmap_gpio_memory()
 {
+    // Memory must be mapped to be unmapped
+    if(gpio_memory != 0x00)
+    {
+        munmap(gpio_memory, GPIO_MEMORY_SIZE);
+        gpio_memory = 0x00;
+    }
+
     return SUCCESS;
 }
 
@@ -119,13 +163,12 @@ static StatusCode check_root()
 
 static StatusCode check_system()
 {
-    FILE cpu_info_file;
-    FILE line_stream[LINE_MAX];
-    char line_buffer[LINE_MAX];
+    FILE* cpu_info_file;
+    void* line_stream = malloc(LINE_MAX);
     char chipset[LINE_MAX];
     unsigned int revision = 0;
 
-    cpu_info_file = fopen(CPU_INFO_FILE, O_RDONLY);
+    cpu_info_file = fopen(CPU_INFO_FILE, "r");
 
     // Failure if the CPU information file cannot be opened
     if(cpu_info_file == NULL)
@@ -144,7 +187,7 @@ static StatusCode check_system()
     }
 
     fclose(cpu_info_file);
-    fclose(line_stream);
+    free(line_stream);
 
     // Check if the chipset is a Raspberry Pi Chipset
     if(strcmp(CPU_FAMILY, chipset) != 0)
@@ -239,7 +282,7 @@ static StatusCode check_pin(int pin_number, PinNumType pin_type)
     return INVALID_PIN_NUMBER;
 }
 
-void main()
+int main()
 {
-
+    return 0;
 }
