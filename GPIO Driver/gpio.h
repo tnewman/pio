@@ -13,8 +13,8 @@
  * unmap_gpio_memory to clean up (do not set or clear after calling this)
  */
 
-#ifndef GPIO_H_
-#define GPIO_H_
+#ifndef GPIO_H
+#define GPIO_H
 
 /*
  * Global Declarations (API) Section
@@ -99,7 +99,7 @@ StatusCode unmap_gpio_memory();
 #define CPU_INFO_FILE "/proc/cpuinfo"
 
 // System on a Chip CPU Family
-#define CPU_FAMILY "BCM2835"
+#define CPU_FAMILY "BCM2708"
 
 // For the revisions, an assumption was made that the revision 2 layout will last indefinitely. This
 // was based on the fact that there has not been another change as of August 2013. By making this
@@ -111,18 +111,5 @@ StatusCode unmap_gpio_memory();
 
 // Revision ID Where Revision 2 Starts
 #define REV_2_START 0x0004
-
-// Each pin in the table corresponds to the pin in the same index of the other tables.
-// Unfortunately, binary searches cannot be recommended because the tables always have
-// a chance of going out of numerical order with a future hardware revision.
-
-// Physical Pin Numbers - This table MUST be left in order for the binary search to work
-const int PHYSICAL_PINS[] = { 3,  5,  7,  8, 10, 11, 12, 13, 15, 16, 18, 19, 21, 22, 23, 24, 26};
-
-// Pin numbers for board revision 1 -
-const int REV_1_PINS[] =    { 0,  1,  4, 14, 15, 17, 18, 21, 22, 23, 24, 10,  9, 25, 11,  8,  7};
-
-// Pin numbers for board revision 2
-const int REV_2_PINS[] =    { 2,  3,  4, 14, 15, 17, 18, 27, 22, 23, 24, 10,  9, 25, 11,  8,  7};
 
 #endif /* GPIO_H_ */

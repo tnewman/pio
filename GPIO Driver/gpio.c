@@ -11,10 +11,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <unistd.h>
 #include <sys/mman.h>
+
+// Each pin in the table corresponds to the pin in the same index of the other tables.
+// Unfortunately, binary searches cannot be recommended because the tables always have
+// a chance of going out of numerical order with a future hardware revision.
+
+// Physical Pin Numbers - This table MUST be left in order for the binary search to work
+const int PHYSICAL_PINS[] = { 3,  5,  7,  8, 10, 11, 12, 13, 15, 16, 18, 19, 21, 22, 23, 24, 26};
+
+// Pin numbers for board revision 1 -
+const int REV_1_PINS[] =    { 0,  1,  4, 14, 15, 17, 18, 21, 22, 23, 24, 10,  9, 25, 11,  8,  7};
+
+// Pin numbers for board revision 2
+const int REV_2_PINS[] =    { 2,  3,  4, 14, 15, 17, 18, 27, 22, 23, 24, 10,  9, 25, 11,  8,  7};
 
 /*
  * Declaration Section
@@ -63,7 +76,6 @@ static StatusCode get_broadcom_pin(int pin_number, PinNumType pin_type, int* bro
 
 StatusCode map_gpio_memory()
 {
-    StatusCode system_result;
     int memory_file;
 
     // Make sure the user is root before continuing
@@ -72,16 +84,8 @@ StatusCode map_gpio_memory()
         return NOT_ROOT;
     }
 
-    // Make sure the hardware is a Raspberry Pi with a known hardware revision
-    system_result = check_system();
-
-    if(system_result != SUCCESS)
-    {
-        return system_result;
-    }
-
     // Map GPIO memory
-    memory_file = open(MEMORY_FILE, O_RDONLY);
+    memory_file = open(MEMORY_FILE, O_RDWR);
 
     // Make sure the file opened correctly
     if(memory_file < 0)
@@ -111,9 +115,17 @@ StatusCode set_pin(int pin_number, PinNumType pin_type)
     int bit_offset;
 
     // Verify that memory is mapped
-    if(gpio_memory ==0x00)
+    if(gpio_memory == 0x00)
     {
         return MEMORY_NOT_MAPPED;
+    }
+
+    // Make sure the hardware is a Raspberry Pi with a known hardware revision
+    status = check_system();
+
+    if(status != SUCCESS)
+    {
+        return status;
     }
 
     status = get_broadcom_pin(pin_number, pin_type, &broadcom_pin);
@@ -131,7 +143,7 @@ StatusCode set_pin(int pin_number, PinNumType pin_type)
     }
 
     // Set the given pin
-    switch(broadcom_pin / (REGISTER_SIZE / GPSET_BITS_PER_PIN))
+    switch((int) broadcom_pin / (REGISTER_SIZE / GPSET_BITS_PER_PIN))
     {
     case 0:
         set_register = GPSET0;
@@ -164,6 +176,14 @@ StatusCode clear_pin(int pin_number, PinNumType pin_type)
         return MEMORY_NOT_MAPPED;
     }
 
+    // Make sure the hardware is a Raspberry Pi with a known hardware revision
+    status = check_system();
+
+    if(status != SUCCESS)
+    {
+        return status;
+    }
+
     status = get_broadcom_pin(pin_number, pin_type, &broadcom_pin);
 
     if(status != SUCCESS)
@@ -179,7 +199,7 @@ StatusCode clear_pin(int pin_number, PinNumType pin_type)
     }
 
     // Clear the given pin
-    switch(broadcom_pin / (REGISTER_SIZE / GPCLR_BITS_PER_PIN))
+    switch((int) broadcom_pin / (REGISTER_SIZE / GPCLR_BITS_PER_PIN))
     {
     case 0:
         clear_register = GPCLR0;
@@ -212,6 +232,14 @@ StatusCode get_pin(int pin_number, PinNumType pin_type, int* pin_status)
         return MEMORY_NOT_MAPPED;
     }
 
+    // Make sure the hardware is a Raspberry Pi with a known hardware revision
+    status = check_system();
+
+    if(status != SUCCESS)
+    {
+        return status;
+    }
+
     status = get_broadcom_pin(pin_number, pin_type, &broadcom_pin);
 
     if(status != SUCCESS)
@@ -227,7 +255,7 @@ StatusCode get_pin(int pin_number, PinNumType pin_type, int* pin_status)
     }
 
     // Get the given pin
-    switch(broadcom_pin / (REGISTER_SIZE / GPCLR_BITS_PER_PIN))
+    switch((int) broadcom_pin / (REGISTER_SIZE / GPCLR_BITS_PER_PIN))
     {
     case 0:
         status_register = GPLEV0;
@@ -240,7 +268,7 @@ StatusCode get_pin(int pin_number, PinNumType pin_type, int* pin_status)
         break;
     }
 
-    bit_offset = (broadcom_pin % (REGISTER_SIZE / GPLEV_BITS_PER_PIN)) * GPLEV_BITS_PER_PIN;
+    bit_offset = ((int) broadcom_pin % (REGISTER_SIZE / GPLEV_BITS_PER_PIN)) * GPLEV_BITS_PER_PIN;
 
     *pin_status = *((volatile int*) gpio_memory + CALCULATE_OFFSET(status_register)) >> bit_offset;
 
@@ -257,10 +285,8 @@ static StatusCode set_function_register(int broadcom_pin, int function_code)
         return INVALID_FUNCTION_CODE;
     }
 
-    bit_offset = broadcom_pin % (REGISTER_SIZE / GPFSEL_BITS_PER_PIN);
-
     // Set the correct function select register
-    switch(broadcom_pin / (REGISTER_SIZE / GPFSEL_BITS_PER_PIN))
+    switch((int) broadcom_pin / (REGISTER_SIZE / GPFSEL_BITS_PER_PIN))
     {
     case 0:
         function_register = GPFSEL0;
@@ -284,8 +310,12 @@ static StatusCode set_function_register(int broadcom_pin, int function_code)
         return INVALID_PIN_NUMBER;
     }
 
-    bit_offset = (broadcom_pin % (REGISTER_SIZE / GPFSEL_BITS_PER_PIN)) * GPFSEL_BITS_PER_PIN;
+    bit_offset = ((int) broadcom_pin % (REGISTER_SIZE / GPFSEL_BITS_PER_PIN)) * GPFSEL_BITS_PER_PIN;
 
+    // The bits need to be cleared before they can be set again
+    *((volatile int*) gpio_memory + CALCULATE_OFFSET(function_register)) &= ~(0x07 << bit_offset);
+
+    // Now set the bits
     *((volatile int*) gpio_memory + CALCULATE_OFFSET(function_register)) |= function_code << bit_offset;
 
     return SUCCESS;
@@ -317,7 +347,7 @@ static StatusCode get_broadcom_pin(int pin_number, PinNumType pin_type, int* bro
     // Get the Broadcom pin for the P1Connector
     if(pin_type == P1CONNECTOR)
     {
-        for(i = 0; i < sizeof(broadcom_pins) / sizeof(int) && i < sizeof(PHYSICAL_PINS) / sizeof(int); i++)
+        for(i = 0; i < sizeof(PHYSICAL_PINS) / sizeof(int); i++)
         {
             /*
              * A match has been found, so return the corresponding Broadcom Pin that is stored
@@ -333,7 +363,7 @@ static StatusCode get_broadcom_pin(int pin_number, PinNumType pin_type, int* bro
     // Verify that the Broadcom pin exists
     else if(pin_type == BROADCOM)
     {
-        for(i = 0; i < sizeof(broadcom_pins) / sizeof(int); i++)
+        for(i = 0; i < sizeof(PHYSICAL_PINS) / sizeof(int); i++)
         {
             if(pin_number == broadcom_pins[i])
             {
@@ -373,8 +403,8 @@ static StatusCode check_root()
 static StatusCode check_system()
 {
     FILE* cpu_info_file;
-    void* line_stream = malloc(LINE_MAX);
-    char chipset[LINE_MAX];
+    char line_stream[LINE_MAX + 1];
+    char chipset[LINE_MAX + 1] = "";
     unsigned int revision = 0;
 
     cpu_info_file = fopen(CPU_INFO_FILE, "r");
@@ -386,17 +416,17 @@ static StatusCode check_system()
     }
 
     // Iterate through each line of the file
-    while(fread(line_stream, LINE_MAX, 1, cpu_info_file) != -1)
+    // Subtract 1 to fix \0
+    while(fgets(line_stream, LINE_MAX, cpu_info_file))
     {
         // Capture the chipset if it is on this line
-        fscanf(line_stream, "Hardware\t: %s", chipset);
+        sscanf(line_stream, "Hardware\t: %s", chipset);
 
         // Capture the hardware revision if it is on this line
-        fscanf(line_stream, "Revision\t: %x", &revision);
+        sscanf(line_stream, "CPU revision\t: %x", &revision);
     }
 
     fclose(cpu_info_file);
-    free(line_stream);
 
     // Check if the chipset is a Raspberry Pi Chipset
     if(strcmp(CPU_FAMILY, chipset) != 0)
@@ -419,13 +449,4 @@ static StatusCode check_system()
     }
 
     return SUCCESS;
-}
-
-int main()
-{
-    map_gpio_memory();
-    set_pin(17, BROADCOM);
-    unmap_gpio_memory();
-
-    return 0;
 }
