@@ -8,6 +8,9 @@
 #ifndef REGISTER_H
 #define REGISTER_H
 
+// GPIO Register Type
+typedef Register_Type unsigned int;
+
 // GPIO Pins
 #define FIRST_PIN 0
 #define LAST_PIN 53
@@ -60,8 +63,6 @@
 #define GPLEV_BITS_PER_PIN 1
 
 // Calculate Offset
-#define CALCULATE_OFFSET(register_address) (((register_address) - GPIO_MEMORY_START) / 4)
-	// Note: Since memory is integer aligned with byte-level addressing, it is necessary to divide by 4 to get
-	//		 the actual offset.
+#define CALCULATE_OFFSET(register_address) (((Register_Type) (register_address) - GPIO_MEMORY_START) / sizeof(Register_Type))
 
 #endif /* REGISTER_H_ */
