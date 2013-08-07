@@ -8,6 +8,10 @@
 #ifndef REGISTER_H
 #define REGISTER_H
 
+// GPIO Pins
+#define FIRST_PIN 0
+#define LAST_PIN 53
+
 // Size of each Register
 #define REGISTER_SIZE 32
 
