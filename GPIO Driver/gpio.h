@@ -1,6 +1,16 @@
 #ifndef GPIO_H
 #define GPIO_H
 
+#define MEMORY_FILE "/dev/mem"
+#define CPU_INFO_PATH "/proc/cpuinfo"
+#define MAX_LINE_LENGTH 100
+#define CHIPSET_HEADER "Hardware\t: "
+#define CHIPSET "BCM2708"
+#define REVISION_HEADER "Revision\t: "
+#define REVISION_LENGTH 0x10000
+#define REVISION_1_START 0x02
+#define REVISION_2_START 0x04
+
 typedef enum {
 	BROADCOM, // The pin numbers in the Broadcom manual referenced by the Raspberry Pi's schematic.
 	P1CONNECTOR // The physical pin numbers on the Raspberry Pi's P1 connector.

@@ -9,7 +9,7 @@
 #define REGISTER_H
 
 // GPIO Register Type
-typedef Register_Type unsigned int;
+typedef volatile unsigned int Register_Type;
 
 // GPIO Pins
 #define FIRST_PIN 0
