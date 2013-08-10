@@ -12,14 +12,10 @@
 typedef volatile unsigned int Register_Type;
 
 // GPIO Pins
-#define FIRST_PIN 0
-#define LAST_PIN 53
+#define GPIO_PIN_COUNT 53
 
 // Size of each Register
 #define REGISTER_SIZE 32
-
-// Number of Pins
-#define GPIO_PIN_COUNT
 
 // GPIO Memory Region
 #define GPIO_MEMORY_START 0x20200000

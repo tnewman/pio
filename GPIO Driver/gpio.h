@@ -19,16 +19,21 @@ typedef enum {
 typedef enum {
 	SUCCESS, // The function returned successfully.
 	NOT_ROOT, // The executable is not seteuid root, and the executable was not run as root (either one will work).
-	NO_CPU_INFO, // The CPU information file cannot be opened
-	INVALID_CHIPSET, // The hardware is not a Raspberry Pi.
-	INVALID_REVISION, // The hardware revision is not recognized by the program.
+	INVALID_CHIPSET, // The hardware is unreadable or not recognized by the program.
 	CANNOT_MAP_MEMORY, // The GPIO memory cannot be mapped for an unknown reason (sorry, can't do any better).
 	NO_INIT, // The init function has not been completed successfully.
-	INVALID_TYPE, // The pin type is not any of the allowed pin types.
-	INVALID_PIN_NUMBER, // The pin number is not a pin number supported by the current pin type.
-	INVALID_FUNCTION_CODE, // The supplied function code exceeds the allowable number of bits
+	INVALID_PIN, // The pin number is not a pin number supported by the current pin type.
+	REGISTER_FAILURE, // There was an internal problem setting a register
 } StatusCode;
 
+typedef struct {
+    int physical_pin_number;
+    int broadcom_pin_number;
+} PhysicalPin;
+
+/*
+ * API Functions
+ */
 StatusCode initialize_gpio();
 StatusCode finalize_gpio();
 StatusCode set_gpio_pin(int pin_number, PinType pin_type);
