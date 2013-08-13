@@ -15,6 +15,11 @@ C library.
 
 ## Usage
 
+### Including the Library
+* Download gpio.c, gpio.h, and register.h.
+* Include gpio.h in files that need to access the API.
+
+### Using the Library
 * StatusCode initialize_gpio(); - Maps the GPIO memory and verifies that a Raspberry Pi with a known revision is 
                                   running the library (run first).
 * StatusCode set_gpio_pin(int pin_number, PinType pin_type); - Sets a given pin high.
