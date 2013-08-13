@@ -227,7 +227,7 @@ static bool map_memory()
     int memory_file;
 
     // Attempt to open the memory file
-    memory_file = open(MEMORY_FILE, O_RDONLY);
+    memory_file = open(MEMORY_FILE, O_RDWR);
 
     if(memory_file < 0)
     {
@@ -238,8 +238,9 @@ static bool map_memory()
     gpio_memory = mmap(0x00, GPIO_MEMORY_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, memory_file, GPIO_MEMORY_START);
     close(memory_file);
 
-    if(gpio_memory == 0)
+    if(gpio_memory == MAP_FAILED)
     {
+        gpio_memory = 0x00;
         return false;
     }
 
@@ -257,13 +258,13 @@ static void unmap_memory()
 
 static bool check_root()
 {
-    if(geteuid() != 0)
+    if(geteuid() == 0)
     {
-        return SUCCESS;
+        return true;
     }
     else
     {
-        return NOT_ROOT;
+        return false;
     }
 }
 
@@ -281,10 +282,10 @@ static bool set_cpu()
         return false;
     }
 
-    while(fread(cpu_info_stream, MAX_LINE_LENGTH - 1, 1, cpu_info_file))
+    while(fgets(cpu_info_stream, MAX_LINE_LENGTH, cpu_info_file))
     {
         sscanf(cpu_info_stream, CHIPSET_HEADER "%s", chipset);
-        sscanf(cpu_info_stream, REVISION_HEADER "%d", &chipset_revision);
+        sscanf(cpu_info_stream, REVISION_HEADER "%x", &chipset_revision);
     }
 
     // Overvolted Raspberry Pi's are prefixed with 1000. Ignore it.
@@ -310,7 +311,7 @@ static bool set_cpu()
         return false;
     }
 
-    return SUCCESS;
+    return true;
 }
 
 static bool check_init()
