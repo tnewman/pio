@@ -43,6 +43,18 @@ avoid unexpected results.
  * INVALID_PIN - The pin number is not a pin number supported by the current pin type.
  * REGISTER_FAILURE - There was an internal problem setting a register
 
+## Questions/Bugs/Suggestions
+
+If you have any questions, have found a bug, or have suggestions to offer, please contact me through GitHub.
+
+## Future Features/Bug Fixes
+
+* A program will be available to set, clear, and get gpio pins without the need to use the API calls within a 
+  program. This will allow any programming language to use the library by invoking a program as well as allow 
+  for command line use. The program will use the seteuid bit to allow any user to access GPIO without sudo.
+* Any bugs that are reported will be fixed as soon as possible.
+* There is not a set timeframe for future features. They will be added as needed.
+
 ## Regarding Root Access
 
 In order to map the register memory, the library requires root access. Simply running the entire program as root 
