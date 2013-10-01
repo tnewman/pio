@@ -31,6 +31,9 @@
 #ifndef GPIO_H
 #define GPIO_H
 
+/*
+ * Configuration
+ */
 #define MEMORY_FILE "/dev/mem"
 #define CPU_INFO_PATH "/proc/cpuinfo"
 #define MAX_LINE_LENGTH 100
@@ -41,11 +44,21 @@
 #define REVISION_1_START 0x02
 #define REVISION_2_START 0x04
 
+/*
+ * Name: PinType
+ * Description: PinType specifies whether the pin count is based on Broadcom's GPIO numbering or a physical connector 
+ *              on the Raspberry Pi.
+ */
 typedef enum {
 	BROADCOM, // The pin numbers in the Broadcom manual referenced by the Raspberry Pi's schematic.
 	P1CONNECTOR // The physical pin numbers on the Raspberry Pi's P1 connector.
 } PinType;
 
+
+/*
+ * Name: StatusCode
+ * Description: StatusCode specifies the result of the operation.
+ */
 typedef enum {
 	SUCCESS, // The function returned successfully.
 	NOT_ROOT, // The executable is not seteuid root, and the executable was not run as root (either one will work).
@@ -56,6 +69,10 @@ typedef enum {
 	REGISTER_FAILURE, // There was an internal problem setting a register
 } StatusCode;
 
+/*
+ * Name: PhysicalPin
+ * Description: Associates a physical pin number with the internal number used by the Broadcom CPU.
+ */
 typedef struct {
     int physical_pin_number;
     int broadcom_pin_number;
@@ -64,10 +81,62 @@ typedef struct {
 /*
  * API Functions
  */
+ 
+/*
+ * Name: initialize_gpio
+ * Description: initialize_gpio checks to make sure that the effective user is root, makes sure the chipset is a 
+ *              recognized Raspberry Pi, maps the memory of the Raspberry Pi's GPIO registers, and drops 
+ *              privileges to the actual user ID.
+ * Warning: This function will only map memory and drop permissions to a non-root user if the setuid bit is set to 
+ *          allow execution and the executable is owned by root. The function should be executed by an unprivileged 
+ *          user, so root permissions can be dropped as soon as the memory is released.
+ * Parameters: None
+ * Returns: Result of the operation.
+ */
 StatusCode initialize_gpio();
+
+/*
+ * Name: finalize_gpio
+ * Description: finalize_gpio unmaps the memory location used by the Raspberry Pi's GPIO registers.
+ * Note: finalize_gpio should be called once all GPIO access is done before the program terminates. If this function is 
+ *       called, further gpio operations cannot take place because the root permissions needed to map the memory have 
+ *       already been dropped.
+ * Parameters: None
+ * Returns: Result of the operation.
+ */
 StatusCode finalize_gpio();
+
+/*
+ * Name: set_gpio_pin
+ * Description: Sets a GPIO.
+ * Note: Must be called after initialize_gpio.
+ * Parameters:
+ *       pin_number[in] - The GPIO pin number to set.
+ *       pin_type[in] - The numbering convention used to identify the GPIO pin.
+ * Returns: Result of the operation.
+ */
 StatusCode set_gpio_pin(int pin_number, PinType pin_type);
+
+/*
+ * Name: clear_gpio_pin
+ * Description: Clears a GPIO pin.
+ * Note: Must be called after initialize_gpio.
+ * Parameters:
+ *       pin_number[in] - The GPIO pin number to clear.
+ *       pin_type[in] - The numbering convention used to identify the GPIO pin.
+ * Returns: Result of the operation.
+ */
 StatusCode clear_gpio_pin(int pin_number, PinType pin_type);
+
+/*
+ * Name: get_gpio_pin
+ * Description: Gets the current value of a GPIO pin.
+ * Note: Must be called after initialize_gpio.
+ *       pin_number[in] - The GPIO pin number to retrieve a value from.
+ *       pin_type[in] - The numbering convention used to identify the GPIO pin.
+ *       pin_value[out] - The current value of the GPIO pin.
+ * Returns: Result of the operation.
+ */
 StatusCode get_gpio_pin(int pin_number, PinType pin_type, int* pin_value);
 
 #endif /* GPIO_H_ */

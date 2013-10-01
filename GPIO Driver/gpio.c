@@ -39,15 +39,17 @@
 #include <sys/types.h>
 #include <stdbool.h>
 
-volatile Register_Type* gpio_memory = 0x00;
-int revision = 0x00;
+/*
+ * Global Variables
+ */
+volatile Register_Type* gpio_memory = 0x00; // Memory address of mapped GPIO memory
+int revision = 0x00; // CPU Revision of the current Raspberry Pi
 
 /*
  * Physical Pin Tables
  *
  * These tables map physical pin numbers for each supported revision to the actual pin
- * numbers used internally by Broadcom. The physical pin numbers must be in numerical
- * order for the binary search to work properly. This is on the programmer to get right.
+ * numbers used internally by Broadcom.
  */
 const PhysicalPin REVISION_1_TABLE[] = {{3, 0}, {5, 1}, {7, 4}, {8, 14}, {10, 15}, {11, 17}, {12, 18},
         {13, 21}, {15, 22}, {16, 23}, {18, 24}, {19, 10}, {21, 9}, {22, 25}, {23, 11}, {24, 8}, {26, 7}};
@@ -56,15 +58,93 @@ const PhysicalPin REVISION_2_TABLE[] = {{3, 2}, {5, 3}, {7, 4}, {8, 14}, {10, 15
 
 /*
  * Implementation Functions
+ *
+ * These functions are for internal use only.
+ */
+
+/*
+ * Name: map_memory
+ * Description: Maps the GPIO register memory.
+ * Parameters: None
+ * Returns: true if memory is mapped successfully, otherwise false.
  */
 static bool map_memory();
+
+/*
+ * Name: unmap_memory
+ * Description: Unmaps the GPIO register memory.
+ * Parameters: None
+ * Returns: None
+ */
 static void unmap_memory();
+
+/*
+ * Name: check_root
+ * Description: Checks if the effective user is root, so memory can be mapped.
+ * Parameters: None
+ * Returns: true if the effective user is root, otherwise false.
+ */
 static bool check_root();
+
+/*
+ * Name: set_cpu
+ * Description: Sets the revision of the CPU used on this Raspberry Pi.
+ * Parameters: None
+ * Returns: true if the CPU revision is recognized and set, otherwise false.
+ */
 static bool set_cpu();
+
+/*
+ * Name: check_init
+ * Description: Checks that the memory has been mapped and the CPU revision has 
+ *              been set.
+ * Parameters: None
+ * Returns: true if memory is mapped and CPU revision is set, otherwise false.
+ */
 static bool check_init();
-static bool pin_to_broadcom(int* pin_number, PinType pin_type);
+
+/*
+ * Name: pin_to_broadcom
+ * Description: Retrieves the Broadcom pin number based on the chosen numbering
+ *              convention.
+ * Parameters:
+ *       pin_number[in] - The GPIO member to retrieve a value from.
+ *       pin_type[in] - The numbering convention used to identify the GPIO pin.
+ *       broadcom_number[out] - The Broadcom pin number of the supplied pin.
+ * Returns: true if a match was found between the pin number and Broadcom number, 
+ *          otherwise false.
+ */
+static bool pin_to_broadcom(int pin_number, PinType pin_type, int* broadcom_number);
+
+/*
+ * Name: pin_to_broadcom
+ * Description: Verifies that a pin number is a valid Broadcom pin number.
+ * Parameters:
+ *       broadcom_number[in] - Broadcom pin number to check.
+ * Returns: true if the pin is a Broadcom pin number, otherwise false.
+ */
 static bool check_broadcom_pin(int broadcom_number);
+
+/*
+ * Name: check_physical_pin
+ * Description: Converts a physical pin number to a Broadcom pin number.
+ * Parameters:
+ *       physical_number[in] - Physical pin number to check.
+ *       connector_type[in] - Numbering convention used for the supplied pin.
+ *       broadcom_number[out] - Broadcom pin number associated with the physical pin.
+ *     
+ * Returns: true if the pin maps to a Broadcom pin number, otherwise false.
+ */
 static bool check_physical_pin(int physical_number, PinType connector_type, int* broadcom_number);
+
+/*
+ * Name: set_gpio_pin_function
+ * Description: Converts a physical pin number to a Broadcom pin number.
+ * Parameters:
+ *       physical_number[in] - The Broadcom pin to set the register function of.
+ *       function_code[in] - The register function number.
+ * Returns: true if register function is changed successfully, otherwise false.
+ */
 static bool set_gpio_pin_function(int broadcom_number, int function_code);
 
 StatusCode initialize_gpio()
@@ -105,6 +185,7 @@ StatusCode set_gpio_pin(int pin_number, PinType pin_type)
     bool status;
     int set_register;
     int bit_offset;
+	int broadcom_number;
 
     // Check initialization
     if(!check_init())
@@ -113,7 +194,7 @@ StatusCode set_gpio_pin(int pin_number, PinType pin_type)
     }
 
     // Attempt to get the Broadcom pin number
-    status = pin_to_broadcom(&pin_number, pin_type);
+    status = pin_to_broadcom(pin_number, pin_type, &broadcom_number);
 
     if(!status)
     {
@@ -121,7 +202,7 @@ StatusCode set_gpio_pin(int pin_number, PinType pin_type)
     }
 
     // Set the pin function to output mode
-    status = set_gpio_pin_function(pin_number, GPIO_OUTPUT);
+    status = set_gpio_pin_function(broadcom_number, GPIO_OUTPUT);
 
     if(!status)
     {
@@ -129,7 +210,7 @@ StatusCode set_gpio_pin(int pin_number, PinType pin_type)
     }
 
     // Find the correct register
-    switch((int) pin_number / (REGISTER_SIZE / GPSET_BITS_PER_PIN))
+    switch((int) broadcom_number / (REGISTER_SIZE / GPSET_BITS_PER_PIN))
     {
     case 0:
         set_register = GPSET0;
@@ -143,7 +224,7 @@ StatusCode set_gpio_pin(int pin_number, PinType pin_type)
     }
 
     // Calculate the bit offset
-    bit_offset = ((int) pin_number % (REGISTER_SIZE / GPSET_BITS_PER_PIN)) * GPSET_BITS_PER_PIN;
+    bit_offset = ((int) broadcom_number % (REGISTER_SIZE / GPSET_BITS_PER_PIN)) * GPSET_BITS_PER_PIN;
     // Set the pin
     *((Register_Type*) gpio_memory + CALCULATE_OFFSET(set_register)) = GPSET_BITS << bit_offset;
 
@@ -155,6 +236,7 @@ StatusCode clear_gpio_pin(int pin_number, PinType pin_type)
     bool status;
     int clear_register;
     int bit_offset;
+	int broadcom_number;
 
     // Check initialization
     if(!check_init())
@@ -163,7 +245,7 @@ StatusCode clear_gpio_pin(int pin_number, PinType pin_type)
     }
 
     // Attempt to get the Broadcom pin number
-    status = pin_to_broadcom(&pin_number, pin_type);
+    status = pin_to_broadcom(pin_number, pin_type, &broadcom_number);
 
     if(!status)
     {
@@ -171,7 +253,7 @@ StatusCode clear_gpio_pin(int pin_number, PinType pin_type)
     }
 
     // Set the pin function to output mode
-    status = set_gpio_pin_function(pin_number, GPIO_OUTPUT);
+    status = set_gpio_pin_function(broadcom_number, GPIO_OUTPUT);
 
     if(!status)
     {
@@ -179,7 +261,7 @@ StatusCode clear_gpio_pin(int pin_number, PinType pin_type)
     }
 
     // Find the correct register
-    switch((int) pin_number / (REGISTER_SIZE / GPCLR_BITS_PER_PIN))
+    switch((int) broadcom_number / (REGISTER_SIZE / GPCLR_BITS_PER_PIN))
     {
     case 0:
         clear_register = GPCLR0;
@@ -193,7 +275,7 @@ StatusCode clear_gpio_pin(int pin_number, PinType pin_type)
     }
 
     // Calculate the bit offset
-    bit_offset = ((int) pin_number % (REGISTER_SIZE / GPCLR_BITS_PER_PIN)) * GPCLR_BITS_PER_PIN;
+    bit_offset = ((int) broadcom_number % (REGISTER_SIZE / GPCLR_BITS_PER_PIN)) * GPCLR_BITS_PER_PIN;
 
     // Clear the pin
     *((Register_Type*) gpio_memory + CALCULATE_OFFSET(clear_register)) = GPCLR_BITS << bit_offset;
@@ -206,6 +288,7 @@ StatusCode get_gpio_pin(int pin_number, PinType pin_type, int* pin_value)
     bool status;
     int status_register;
     int bit_offset;
+	int broadcom_number
 
     // Check initialization
     if(!check_init())
@@ -214,7 +297,7 @@ StatusCode get_gpio_pin(int pin_number, PinType pin_type, int* pin_value)
     }
 
     // Attempt to get the Broadcom pin number
-    status = pin_to_broadcom(&pin_number, pin_type);
+    status = pin_to_broadcom(pin_number, pin_type, &broadcom_number);
 
     if(!status)
     {
@@ -222,7 +305,7 @@ StatusCode get_gpio_pin(int pin_number, PinType pin_type, int* pin_value)
     }
 
     // Set the pin function to input mode
-    status = set_gpio_pin_function(pin_number, GPIO_INPUT);
+    status = set_gpio_pin_function(broadcom_number, GPIO_INPUT);
 
     if(!status)
     {
@@ -230,7 +313,7 @@ StatusCode get_gpio_pin(int pin_number, PinType pin_type, int* pin_value)
     }
 
     // Find the correct register
-    switch((int) pin_number / (REGISTER_SIZE / GPLEV_BITS_PER_PIN))
+    switch((int) broadcom_number / (REGISTER_SIZE / GPLEV_BITS_PER_PIN))
     {
     case 0:
         status_register = GPLEV0;
@@ -244,7 +327,7 @@ StatusCode get_gpio_pin(int pin_number, PinType pin_type, int* pin_value)
     }
 
     // Calculate the bit offset
-    bit_offset = ((int) pin_number % (REGISTER_SIZE / GPLEV_BITS_PER_PIN)) * GPLEV_BITS_PER_PIN;
+    bit_offset = ((int) broadcom_number % (REGISTER_SIZE / GPLEV_BITS_PER_PIN)) * GPLEV_BITS_PER_PIN;
 
     // Get the pin value
     *pin_value = *((Register_Type*) gpio_memory + CALCULATE_OFFSET(status_register)) >> bit_offset;
@@ -359,7 +442,7 @@ static bool check_init()
     return true;
 }
 
-static bool pin_to_broadcom(int* pin_number, PinType pin_type)
+static bool pin_to_broadcom(int pin_number, PinType pin_type, int* broadcom_number)
 {
     bool result;
 
@@ -390,11 +473,9 @@ static bool check_broadcom_pin(int broadcom_number)
     return false;
 }
 
-static bool check_physical_pin(int physical_number, PinType connector_type, int* broadcom_number)
+static bool check_physical_pin(int physical_pin_number, PinType connector_type, int* broadcom_number)
 {
-    int left_bound;
-    int right_bound;
-    int middle;
+	int table_size;
     const PhysicalPin* pin_table;
 
     // Get the correct pin table based on the connector and revision
@@ -404,13 +485,13 @@ static bool check_physical_pin(int physical_number, PinType connector_type, int*
         {
             pin_table = REVISION_1_TABLE;
             left_bound = 0;
-            right_bound = sizeof(REVISION_1_TABLE) / sizeof(PhysicalPin);
+            table_size = sizeof(REVISION_1_TABLE) / sizeof(PhysicalPin);
         }
         else if(revision == 2)
         {
             pin_table = REVISION_2_TABLE;
             left_bound = 0;
-            right_bound = sizeof(REVISION_2_TABLE) / sizeof(PhysicalPin);
+            table_size = sizeof(REVISION_2_TABLE) / sizeof(PhysicalPin);
         }
         else
         {
@@ -418,29 +499,21 @@ static bool check_physical_pin(int physical_number, PinType connector_type, int*
         }
     }
 
-    /*
-     * If the bounds pass each other, the whole thing has been checked, and
-     * the number was not there.
-     */
-    while(left_bound <= right_bound)
+    /* Check the pin mapping tables to find the Broadcom GPIO pin number based on the 
+	   type of numbering convention the user chose and the Raspberry Pi's revision.
+	
+	   Although a linear search is inefficient - O(N) complexity, the upper-bound to 
+	   the physical number of pins is quite low (under 50) and fixed at compile time. 
+	   Using a linear search on the pin tables prevents a very hard to track down 
+	   defect: the programmer does not put pin mappings in a sequential order. */
+    for(int i = 0; i < table_size; i++)
     {
-        middle = (right_bound - left_bound) / 2;
-
-        // The pin is in the lower half if it is smaller than the middle
-        if(physical_number < pin_table[middle].physical_pin_number)
+        /* If the physical pin number with a corresponding Broadcom pin number was 
+		   found in the table, the user's pin number is valid. */
+        if(pin_number == pin_table[i].physical_pin_number)
         {
-            right_bound = middle - 1;
-        }
-        // The pin is in the upper half if it is larger than the middle
-        else if(physical_number > pin_table[middle].physical_pin_number)
-        {
-            left_bound = middle + 1;
-        }
-        // The pin exists in the array
-        else
-        {
-            *broadcom_number = pin_table[middle].broadcom_pin_number;
-            return true;
+            *broadcom_number = pin_table[i].broadcom_pin_number;
+			return true;
         }
     }
 
