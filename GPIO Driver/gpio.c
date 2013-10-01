@@ -288,7 +288,7 @@ StatusCode get_gpio_pin(int pin_number, PinType pin_type, int* pin_value)
     bool status;
     int status_register;
     int bit_offset;
-	int broadcom_number
+	int broadcom_number;
 
     // Check initialization
     if(!check_init())
@@ -449,7 +449,7 @@ static bool pin_to_broadcom(int pin_number, PinType pin_type, int* broadcom_numb
     // Any pin type other than Broadcom needs to be checked as a physical pin
     if(pin_type != BROADCOM)
     {
-        result = check_physical_pin(*pin_number, pin_type, pin_number);
+        result = check_physical_pin(pin_number, pin_type, broadcom_number);
 
         if(!result)
         {
@@ -458,7 +458,7 @@ static bool pin_to_broadcom(int pin_number, PinType pin_type, int* broadcom_numb
     }
 
     // Verify Broadcom number (or physical pin converted into a Broadcom)
-    result = check_broadcom_pin(*pin_number);
+    result = check_broadcom_pin(*broadcom_number);
 
     return result;
 }
@@ -477,6 +477,7 @@ static bool check_physical_pin(int physical_pin_number, PinType connector_type, 
 {
 	int table_size;
     const PhysicalPin* pin_table;
+    int i;
 
     // Get the correct pin table based on the connector and revision
     if(connector_type == P1CONNECTOR)
@@ -484,13 +485,11 @@ static bool check_physical_pin(int physical_pin_number, PinType connector_type, 
         if(revision == 1)
         {
             pin_table = REVISION_1_TABLE;
-            left_bound = 0;
             table_size = sizeof(REVISION_1_TABLE) / sizeof(PhysicalPin);
         }
         else if(revision == 2)
         {
             pin_table = REVISION_2_TABLE;
-            left_bound = 0;
             table_size = sizeof(REVISION_2_TABLE) / sizeof(PhysicalPin);
         }
         else
@@ -506,11 +505,11 @@ static bool check_physical_pin(int physical_pin_number, PinType connector_type, 
 	   the physical number of pins is quite low (under 50) and fixed at compile time. 
 	   Using a linear search on the pin tables prevents a very hard to track down 
 	   defect: the programmer does not put pin mappings in a sequential order. */
-    for(int i = 0; i < table_size; i++)
+    for(i = 0; i < table_size; i++)
     {
         /* If the physical pin number with a corresponding Broadcom pin number was 
 		   found in the table, the user's pin number is valid. */
-        if(pin_number == pin_table[i].physical_pin_number)
+        if(physical_pin_number == pin_table[i].physical_pin_number)
         {
             *broadcom_number = pin_table[i].broadcom_pin_number;
 			return true;
@@ -524,6 +523,7 @@ static bool set_gpio_pin_function(int broadcom_number, int function_code)
 {
     int function_register;
     int bit_offset;
+    int i;
 
     // Function code must be 0 to 7
     if(function_code > 8 || function_code < 0)
