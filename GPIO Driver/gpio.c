@@ -210,7 +210,7 @@ StatusCode set_gpio_pin(int pin_number, PinType pin_type)
     }
 
     // Find the correct register
-    switch((int) broadcom_number / (REGISTER_SIZE / GPSET_BITS_PER_PIN))
+    switch(broadcom_number / (REGISTER_SIZE / GPSET_BITS_PER_PIN))
     {
     case 0:
         set_register = GPSET0;
@@ -224,9 +224,9 @@ StatusCode set_gpio_pin(int pin_number, PinType pin_type)
     }
 
     // Calculate the bit offset
-    bit_offset = ((int) broadcom_number % (REGISTER_SIZE / GPSET_BITS_PER_PIN)) * GPSET_BITS_PER_PIN;
+    bit_offset = (broadcom_number % (REGISTER_SIZE / GPSET_BITS_PER_PIN)) * GPSET_BITS_PER_PIN;
     // Set the pin
-    *((Register_Type*) gpio_memory + CALCULATE_OFFSET(set_register)) = GPSET_BITS << bit_offset;
+    *(gpio_memory + calculate_offset(set_register)) = GPSET_BITS << bit_offset;
 
     return SUCCESS;
 }
@@ -261,7 +261,7 @@ StatusCode clear_gpio_pin(int pin_number, PinType pin_type)
     }
 
     // Find the correct register
-    switch((int) broadcom_number / (REGISTER_SIZE / GPCLR_BITS_PER_PIN))
+    switch(broadcom_number / (REGISTER_SIZE / GPCLR_BITS_PER_PIN))
     {
     case 0:
         clear_register = GPCLR0;
@@ -275,10 +275,10 @@ StatusCode clear_gpio_pin(int pin_number, PinType pin_type)
     }
 
     // Calculate the bit offset
-    bit_offset = ((int) broadcom_number % (REGISTER_SIZE / GPCLR_BITS_PER_PIN)) * GPCLR_BITS_PER_PIN;
+    bit_offset = (broadcom_number % (REGISTER_SIZE / GPCLR_BITS_PER_PIN)) * GPCLR_BITS_PER_PIN;
 
     // Clear the pin
-    *((Register_Type*) gpio_memory + CALCULATE_OFFSET(clear_register)) = GPCLR_BITS << bit_offset;
+    *(gpio_memory + calculate_offset(clear_register)) = GPCLR_BITS << bit_offset;
 
     return SUCCESS;
 }
@@ -313,7 +313,7 @@ StatusCode get_gpio_pin(int pin_number, PinType pin_type, int* pin_value)
     }
 
     // Find the correct register
-    switch((int) broadcom_number / (REGISTER_SIZE / GPLEV_BITS_PER_PIN))
+    switch(broadcom_number / (REGISTER_SIZE / GPLEV_BITS_PER_PIN))
     {
     case 0:
         status_register = GPLEV0;
@@ -327,10 +327,10 @@ StatusCode get_gpio_pin(int pin_number, PinType pin_type, int* pin_value)
     }
 
     // Calculate the bit offset
-    bit_offset = ((int) broadcom_number % (REGISTER_SIZE / GPLEV_BITS_PER_PIN)) * GPLEV_BITS_PER_PIN;
+    bit_offset = (broadcom_number % (REGISTER_SIZE / GPLEV_BITS_PER_PIN)) * GPLEV_BITS_PER_PIN;
 
     // Get the pin value
-    *pin_value = *((Register_Type*) gpio_memory + CALCULATE_OFFSET(status_register)) >> bit_offset;
+    *pin_value = *(gpio_memory + calculate_offset(status_register)) >> bit_offset;
 
     return SUCCESS;
 }
@@ -523,7 +523,6 @@ static bool set_gpio_pin_function(int broadcom_number, int function_code)
 {
     int function_register;
     int bit_offset;
-    int i;
 
     // Function code must be 0 to 7
     if(function_code > 8 || function_code < 0)
@@ -559,10 +558,10 @@ static bool set_gpio_pin_function(int broadcom_number, int function_code)
     bit_offset = (broadcom_number % (REGISTER_SIZE / GPFSEL_BITS_PER_PIN)) * GPFSEL_BITS_PER_PIN;
 
     // The bits need to be cleared before they can be set again
-    *((volatile int*) gpio_memory + CALCULATE_OFFSET(function_register)) &= ~(0x07 << bit_offset);
+    *(gpio_memory + calculate_offset(function_register)) &= ~(0x07 << bit_offset);
 
     // Now set the bits
-    *((volatile int*) gpio_memory + CALCULATE_OFFSET(function_register)) |= function_code << bit_offset;
+    *(gpio_memory + calculate_offset(function_register)) |= function_code << bit_offset;
 
     return true;
 }
