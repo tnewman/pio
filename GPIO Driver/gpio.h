@@ -88,8 +88,8 @@ typedef struct {
  *              recognized Raspberry Pi, maps the memory of the Raspberry Pi's GPIO registers, and drops 
  *              privileges to the actual user ID.
  * Warning: The executable has to be owned by the root user with the seteuid bit set for memory to be mapped and 
- * privileges to be lowered once memory is mapped. The executable should be ran as an unprivileged user. 
- * Running as root is a security risk.
+ *          privileges to be lowered once memory is mapped. The executable should be ran as an unprivileged user. 
+ *          Running as root is a security risk.
  * Parameters: None
  * Returns: Result of the operation.
  */
