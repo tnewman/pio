@@ -82,6 +82,9 @@ typedef volatile unsigned int Register_Type;
 #define GPLEV_BITS_PER_PIN 1
 
 // Calculate Offset of Current Register from Base Address
-#define CALCULATE_OFFSET(register_address) (((Register_Type) (register_address) - GPIO_MEMORY_START) / sizeof(Register_Type))
+inline Register_Type calculate_offset(Register_Type register_address)
+{
+	return (register_address - GPIO_MEMORY_START) / sizeof(Register_Type);
+}
 
 #endif /* REGISTER_H_ */
