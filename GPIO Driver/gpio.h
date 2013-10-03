@@ -87,9 +87,9 @@ typedef struct {
  * Description: initialize_gpio checks to make sure that the effective user is root, makes sure the chipset is a 
  *              recognized Raspberry Pi, maps the memory of the Raspberry Pi's GPIO registers, and drops 
  *              privileges to the actual user ID.
- * Warning: This function will only map memory and drop permissions to a non-root user if the setuid bit is set to 
- *          allow execution and the executable is owned by root. The function should be executed by an unprivileged 
- *          user, so root permissions can be dropped as soon as the memory is released.
+ * Warning: The executable has to be owned by the root user with the seteuid bit set for memory to be mapped and 
+ * privileges to be lowered once memory is mapped. The executable should be ran as an unprivileged user. 
+ * Running as root is a security risk.
  * Parameters: None
  * Returns: Result of the operation.
  */
